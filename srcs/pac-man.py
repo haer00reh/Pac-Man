@@ -1,2 +1,9 @@
+from mazegenerator import MazeGenerator
+from config import Config
+
 if __name__ == "__main__":
-    pass
+    # configs = Config(file_path="config.json")
+    # configs.extract()
+    # game_state = GameState()
+    m = MazeGenerator()
+    print(m.maze)
