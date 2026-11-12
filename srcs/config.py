@@ -17,6 +17,7 @@ class Config(BaseModel):
     pacgums: list[PacGum] = []
     maps: list[MazeGenerator] = []
 
+    @staticmethod
     def reject_duplicate_params(
         pairs: list[tuple[str, Any]],
     ) -> dict[str, Any]:
@@ -27,8 +28,22 @@ class Config(BaseModel):
             params[key] = value
         return params
 
+    @staticmethod
+    def check_values(value: Any, path: str = "config") -> None:
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            if value < 0:
+                raise ValueError(f"{path} cannot be negative")
+        elif isinstance(value, dict):
+            for key, item in value.items():
+                Config.check_values(item, f"{path}.{key}")
+        elif isinstance(value, list):
+            for index, item in enumerate(value):
+                Config.check_values(item, f"{path}[{index}]")
+
     def parse(self, content: str) -> dict[str, Any]:
-        return json.loads(content, object_pairs_hook=self.reject_duplicate_params)
+        data = json.loads(content, object_pairs_hook=self.reject_duplicate_params)
+        self.check_values(data)
+        return data
 
     def extract(self):
         try:
