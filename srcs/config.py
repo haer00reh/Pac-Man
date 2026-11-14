@@ -51,10 +51,10 @@ class Config(BaseModel):
                 content = "".join(line.rsplit("#", 1)[0] for line in f)
             self.data = self.parse(content)
         except FileNotFoundError as e:
-            print(f"Error: File not found - {e}")
+            print(f"Error: File not found - {e}", file=sys.stderr)
             sys.exit(1)
         except (json.JSONDecodeError, ValueError) as e:
-            print(f"Error: Invalid JSON format - {e}")
+            print(f"Error: Invalid JSON format - {e}", file=sys.stderr)
             sys.exit(1)
         self.time_limit = self.data.get("level_max_time", 90)
         self.seed = self.data.get("seed", 42)
@@ -80,10 +80,46 @@ class Game(BaseModel):
 
     state: GameState = GameState()
     config: Config = Config()
+    valid_positions: list[tuple[int, int]] = []
 
+    def load_level(self, level_index: int):
+        maze = self.config.data.get(f"level_{level_index}")
+        if not maze:
+            print(f"Level not found: {level_index}", file=sys.stderr)
+            sys.exit(1)
+        
 
-    def load_level(self, level_index):
-        pass
+    def dfs(self, maze: list[list[int]]) -> None:
+        height = len(maze)
+        width = len(maze[0])
+        start = (height // 2, width // 2)
+        directions = [
+            (0, -1, 1, 4), #up
+            (1, 0, 2, 8), #right
+            (0, 1, 4, 1), #down
+            (-1, 0, 8, 2) #left
+        ]
+
+        stack = [start]
+        visited = set()
+
+        while stack:
+            x, y = stack.pop()
+            if (x, y) in visited:
+                continue
+            visited.add((x, y))
+            self.valid_positions.append((x, y))
+            for dx, dy, wall, opposite in directions:
+                new_x, new_y = x + dx, y + dy
+                if not (0 <= new_x < width and 0 <= new_y < height):
+                    continue
+                if maze[y][x] & wall:
+                    continue
+                if maze[new_y][new_x] & opposite:
+                    continue
+                if (new_x, new_y) not in visited:
+                    stack.append((new_x, new_y))
+
 
     def update(self):
         pass
