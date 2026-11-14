@@ -84,7 +84,8 @@ class Game(BaseModel):
     maze: list[list[int]] = []
 
     def load_level(self, level_index: int):
-        self.maze = self.config.data.get(f"level_{level_index}")
+        dat = self.config.data.get("level")[level_index]
+        self.maze = MazeGenerator(seed=self.config.seed, size=(dat["width"], dat["height"])).maze
         if not self.maze:
             print(f"Level not found: {level_index}", file=sys.stderr)
             sys.exit(1)
@@ -96,11 +97,11 @@ class Game(BaseModel):
                 if cell != 15:
                     self.valid_positions.append((x, y))
 
+
     def init_positions(self):
         width = len(self.maze[0])
         height = len(self.maze)
         center = (width // 2, height // 2)
-        pacgums_len = self.config.data.get("pacgum", 0)
         corners = [
             (0, 0),
             (width - 1, 0),
@@ -108,8 +109,8 @@ class Game(BaseModel):
             (width - 1, height - 1)
         ]
 
-        if center in self.valid_positions:
-            self.state.pacman = Pacman(x=width // 2, y=height // 2)
+        if (12, 6) in self.valid_positions:
+            self.state.pacman = Pacman(x=12, y=6, state="alive")
         else:
             print("Invalid pacman position", file=sys.stderr)
             sys.exit(1)
@@ -127,8 +128,7 @@ class Game(BaseModel):
         excluded_positions.add(center)
         available_positions = [pos for pos in self.valid_positions if pos not in excluded_positions]
         pacgum_count = min(self.config.data.get("pacgum", 0), len(available_positions))
-        for i in range(pacgum_count):
-            x, y = random.sample(available_positions, pacgum_count)
+        for x, y in random.sample(available_positions, pacgum_count):
             self.state.pacgums.append(PacGum(x=x, y=y, eaten=False))
 
     def update(self):
