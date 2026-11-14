@@ -10,6 +10,8 @@ class PacGum(BaseModel):
     y: int
     eaten: bool
 
+class SuperPacGum(PacGum):
+    pass
 
 class Ghost(BaseModel):
     x: int
