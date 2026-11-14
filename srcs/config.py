@@ -89,37 +89,11 @@ class Game(BaseModel):
             sys.exit(1)
         
 
-    def dfs(self, maze: list[list[int]]) -> None:
-        height = len(maze)
-        width = len(maze[0])
-        start = (height // 2, width // 2)
-        directions = [
-            (0, -1, 1, 4), #up
-            (1, 0, 2, 8), #right
-            (0, 1, 4, 1), #down
-            (-1, 0, 8, 2) #left
-        ]
-
-        stack = [start]
-        visited = set()
-
-        while stack:
-            x, y = stack.pop()
-            if (x, y) in visited:
-                continue
-            visited.add((x, y))
-            self.valid_positions.append((x, y))
-            for dx, dy, wall, opposite in directions:
-                new_x, new_y = x + dx, y + dy
-                if not (0 <= new_x < width and 0 <= new_y < height):
-                    continue
-                if maze[y][x] & wall:
-                    continue
-                if maze[new_y][new_x] & opposite:
-                    continue
-                if (new_x, new_y) not in visited:
-                    stack.append((new_x, new_y))
-
+    def validate_positions(self, maze: list[list[int]]) -> None:
+        for y, row in enumerate(maze):
+            for x, cell in enumerate(row):
+                if cell != 15:
+                    self.valid_positions.append((x, y))
 
     def update(self):
         pass
