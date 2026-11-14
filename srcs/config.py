@@ -1,11 +1,11 @@
 import json
 import sys
 from typing import Any
-
+import random
 from mazegenerator import MazeGenerator
 from pydantic import BaseModel, ConfigDict
 from objects import Ghost, PacGum, Pacman
-
+from ghosts import Blinky, Clyde, Inky, Pinky
 
 class Config(BaseModel):
 
@@ -81,19 +81,46 @@ class Game(BaseModel):
     state: GameState = GameState()
     config: Config = Config()
     valid_positions: list[tuple[int, int]] = []
+    maze: list[list[int]] = []
 
     def load_level(self, level_index: int):
-        maze = self.config.data.get(f"level_{level_index}")
-        if not maze:
+        self.maze = self.config.data.get(f"level_{level_index}")
+        if not self.maze:
             print(f"Level not found: {level_index}", file=sys.stderr)
             sys.exit(1)
-        
 
-    def validate_positions(self, maze: list[list[int]]) -> None:
-        for y, row in enumerate(maze):
+
+    def validate_positions(self) -> None:
+        for y, row in enumerate(self.maze):
             for x, cell in enumerate(row):
                 if cell != 15:
                     self.valid_positions.append((x, y))
+
+    def init_positions(self):
+        width = len(self.maze[0])
+        height = len(self.maze)
+        corners = [
+            (0, 0),
+            (width - 1, 0),
+            (0, height - 1),
+            (width - 1, height - 1)
+        ]
+
+        if (width // 2, height // 2) in self.valid_positions:
+            self.state.pacman = Pacman(x=width // 2, y=height // 2)
+        else:
+            print("Invalid pacman position", file=sys.stderr)
+            sys.exit(1)
+
+        if all(corner in self.valid_positions for corner in corners):
+            self.state.ghosts.append(Blinky(x=corners[0][0], y=corners[0][1], state="alive"))
+            self.state.ghosts.append(Clyde(x=corners[1][0], y=corners[1][1], state="alive"))
+            self.state.ghosts.append(Inky(x=corners[2][0], y=corners[2][1], state="alive"))
+            self.state.ghosts.append(Pinky(x=corners[3][0], y=corners[3][1], state="alive"))
+        else:
+            print("Invalid ghost positions", file=sys.stderr)
+            sys.exit(1)
+
 
     def update(self):
         pass
