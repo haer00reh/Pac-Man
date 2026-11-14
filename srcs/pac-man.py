@@ -1,7 +1,8 @@
 from mazegenerator import MazeGenerator
-from config import Config
+from config import Config, GameState
 
 if __name__ == "__main__":
     configs = Config(file_path="config.json")
     configs.extract()
-    configs.init()
+    state = GameState()
+    state.init(configs)

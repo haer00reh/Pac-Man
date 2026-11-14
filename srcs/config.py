@@ -8,14 +8,14 @@ from objects import Ghost, PacGum, Pacman
 
 
 class Config(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     file_path: str = ""
     data: dict[str, Any] = {}
-    pacman: Pacman | None = None
-    ghosts: list[Ghost] = []
-    pacgums: list[PacGum] = []
-    maps: list[MazeGenerator] = []
+    time_limit: int = 0
+    seed: int = 42
+    point_per_gum: int = 0
+    point_per_sgum: int = 0
+    point_per_ghost: int = 0
 
     @staticmethod
     def reject_duplicate_params(
@@ -56,12 +56,34 @@ class Config(BaseModel):
         except (json.JSONDecodeError, ValueError) as e:
             print(f"Error: Invalid JSON format - {e}")
             sys.exit(1)
+        self.time_limit = self.data.get("level_max_time", 90)
+        self.seed = self.data.get("seed", 42)
+        self.point_per_gum = self.data.get("points_per_pacgum", 1)
+        self.point_per_sgum = self.data.get("points_per_super_pacgum", 3)
+        self.point_per_ghost = self.data.get("points_per_ghost", 6)
 
-    def init(self):
-        self.maps = [
-            MazeGenerator(
-                size=(level["width"], level["height"]),
-                seed=self.data.get("seed", 0),
-            )
-            for level in self.data.get("level", [])
-        ]
+
+
+
+
+class GameState(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    pacman: Pacman | None = None
+    ghosts: list[Ghost] = []
+    pacgums: list[PacGum] = []
+    maps: list[MazeGenerator] = []
+
+
+class Game(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    state: GameState = GameState()
+    config: Config = Config()
+
+
+    def load_level(self, level_index):
+        pass
+
+    def update(self):
+        pass
