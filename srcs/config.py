@@ -97,6 +97,13 @@ class Game(BaseModel):
                 if cell != 15:
                     self.valid_positions.append((x, y))
 
+    def closest_euclidean_valid(self):
+        width = len(self.maze[0])
+        height = len(self.maze)
+        center = (width // 2, height // 2)
+        closest = min(self.valid_positions, key=lambda pos: (pos[0] - center[0])**2 + (pos[1] - center[1])**2)
+        return closest
+
 
     def init_positions(self):
         width = len(self.maze[0])
@@ -109,11 +116,11 @@ class Game(BaseModel):
             (width - 1, height - 1)
         ]
 
-        if (12, 6) in self.valid_positions:
-            self.state.pacman = Pacman(x=12, y=6, state="alive")
+        if center in self.valid_positions:
+            self.state.pacman = Pacman(x=center[0], y=center[1], state="alive")
         else:
-            print("Invalid pacman position", file=sys.stderr)
-            sys.exit(1)
+            closest = self.closest_euclidean_valid()
+            self.state.pacman = Pacman(x=closest[0], y=closest[1], state="alive")
 
         if all(corner in self.valid_positions for corner in corners):
             self.state.ghosts.append(Blinky(x=corners[0][0], y=corners[0][1], state="alive"))
