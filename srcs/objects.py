@@ -18,4 +18,5 @@ class Ghost(BaseModel):
     x: int
     y: int
     state: str
+    edible: bool = False
     score: int = 0

@@ -93,7 +93,7 @@ class Game(BaseModel):
             sys.exit(1)
 
 
-    def validate_positions(self) -> None:
+    def collect_valid_positions(self) -> None:
         for y, row in enumerate(self.maze):
             for x, cell in enumerate(row):
                 if cell != 15:
@@ -139,11 +139,44 @@ class Game(BaseModel):
             sys.exit(1)
 
         excluded_positions = set(corners)
-        excluded_positions.add(center)
+        pacman_position = (self.state.pacman.x, self.state.pacman.y)
+        excluded_positions.add(pacman_position)
         available_positions = [pos for pos in self.valid_positions if pos not in excluded_positions]
         pacgum_count = min(self.config.data.get("pacgum", 0), len(available_positions))
         for x, y in random.sample(available_positions, pacgum_count):
             self.state.pacgums.append(PacGum(x=x, y=y, eaten=False, score=self.config.point_per_gum))
+
+    def can_move(self, x, y, direction):
+        walls = {
+            "north": (0, -1, 1, 4),
+            "east": (1, 0, 2, 8),
+            "south": (0, 1, 4, 1),
+            "west": (-1, 0, 8, 2)
+        }
+
+        dx, dy, wall, opposite_wall = walls[direction]
+
+        nx = x + dx
+        ny = y + dy
+
+        if not (0 <= ny < len(self.maze) and
+                0 <= nx < len(self.maze[0])):
+            return False
+
+        if self.maze[y][x] & wall:
+            return False
+
+        if self.maze[ny][nx] & opposite_wall:
+            return False
+
+        return True
+
+
+    def check_entity_collisions(self):
+        pass
+    
+    def check_ghost_collisions(self):
+        pass
 
     def update(self):
         pass

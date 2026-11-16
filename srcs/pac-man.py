@@ -75,7 +75,7 @@ def main() -> None:
     random.seed(game.config.seed)
 
     game.load_level(1)
-    game.validate_positions()
+    game.collect_valid_positions()
     game.init_positions()
 
     test_game(game)

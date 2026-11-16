@@ -1,13 +1,19 @@
-from objects import Ghost
+from objects import Ghost, Pacman
 
 class Clyde(Ghost):
-    pass
+
+    def chase(self, pacman: Pacman):
+        pass
+
 
 class Blinky(Ghost):
-    pass
+    def chase(self, pacman: Pacman):
+        pass
 
 class Inky(Ghost):
-    pass
+    def chase(self, pacman: Pacman):
+        pass
 
 class Pinky(Ghost):
-    pass
+    def chase(self, pacman: Pacman):
+        pass
