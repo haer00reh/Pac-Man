@@ -8,6 +8,7 @@ class Pacman(BaseModel):
 class PacGum(BaseModel):
     x: int
     y: int
+    score: int = 0
     eaten: bool
 
 class SuperPacGum(PacGum):
@@ -17,3 +18,4 @@ class Ghost(BaseModel):
     x: int
     y: int
     state: str
+    score: int = 0

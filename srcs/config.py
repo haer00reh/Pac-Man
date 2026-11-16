@@ -4,7 +4,7 @@ from typing import Any
 import random
 from mazegenerator import MazeGenerator
 from pydantic import BaseModel, ConfigDict
-from objects import Ghost, PacGum, Pacman
+from objects import Ghost, PacGum, Pacman, SuperPacGum
 from ghosts import Blinky, Clyde, Inky, Pinky
 
 class Config(BaseModel):
@@ -70,8 +70,10 @@ class GameState(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     pacman: Pacman | None = None
+    current_score: int = 0
     ghosts: list[Ghost] = []
     pacgums: list[PacGum] = []
+    super_pacgums: list[SuperPacGum] = []
     maps: list[MazeGenerator] = []
 
 
@@ -123,10 +125,15 @@ class Game(BaseModel):
             self.state.pacman = Pacman(x=closest[0], y=closest[1], state="alive")
 
         if all(corner in self.valid_positions for corner in corners):
-            self.state.ghosts.append(Blinky(x=corners[0][0], y=corners[0][1], state="alive"))
-            self.state.ghosts.append(Clyde(x=corners[1][0], y=corners[1][1], state="alive"))
-            self.state.ghosts.append(Inky(x=corners[2][0], y=corners[2][1], state="alive"))
-            self.state.ghosts.append(Pinky(x=corners[3][0], y=corners[3][1], state="alive"))
+            self.state.ghosts.append(Blinky(x=corners[0][0], y=corners[0][1], state="alive", score=self.config.point_per_ghost))
+            self.state.ghosts.append(Clyde(x=corners[1][0], y=corners[1][1], state="alive", score=self.config.point_per_ghost))
+            self.state.ghosts.append(Inky(x=corners[2][0], y=corners[2][1], state="alive", score=self.config.point_per_ghost))
+            self.state.ghosts.append(Pinky(x=corners[3][0], y=corners[3][1], state="alive", score=self.config.point_per_ghost))
+
+            self.state.super_pacgums.append(SuperPacGum(x=corners[0][0], y=corners[0][1], eaten=False, score=self.config.point_per_sgum))
+            self.state.super_pacgums.append(SuperPacGum(x=corners[1][0], y=corners[1][1], eaten=False, score=self.config.point_per_sgum))
+            self.state.super_pacgums.append(SuperPacGum(x=corners[2][0], y=corners[2][1], eaten=False, score=self.config.point_per_sgum))
+            self.state.super_pacgums.append(SuperPacGum(x=corners[3][0], y=corners[3][1], eaten=False, score=self.config.point_per_sgum))
         else:
             print("Invalid ghost positions", file=sys.stderr)
             sys.exit(1)
@@ -136,7 +143,7 @@ class Game(BaseModel):
         available_positions = [pos for pos in self.valid_positions if pos not in excluded_positions]
         pacgum_count = min(self.config.data.get("pacgum", 0), len(available_positions))
         for x, y in random.sample(available_positions, pacgum_count):
-            self.state.pacgums.append(PacGum(x=x, y=y, eaten=False))
+            self.state.pacgums.append(PacGum(x=x, y=y, eaten=False, score=self.config.point_per_gum))
 
     def update(self):
         pass
