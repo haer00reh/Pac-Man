@@ -125,17 +125,17 @@ class Game(BaseModel):
             self.state.pacman = Pacman(x=closest[0], y=closest[1], state="alive")
 
         if all(corner in self.valid_positions for corner in corners):
-            self.state.ghosts.append(Blinky(x=corners[0][0], y=corners[0][1], state="alive", score=self.config.point_per_ghost))
-            self.state.ghosts.append(Clyde(x=corners[1][0], y=corners[1][1], state="alive", score=self.config.point_per_ghost))
-            self.state.ghosts.append(Inky(x=corners[2][0], y=corners[2][1], state="alive", score=self.config.point_per_ghost))
-            self.state.ghosts.append(Pinky(x=corners[3][0], y=corners[3][1], state="alive", score=self.config.point_per_ghost))
+            self.state.ghosts.append(Blinky(x=corners[0][0], start_x=corners[0][0], y=corners[0][1], start_y=corners[0][1], state="alive", score=self.config.point_per_ghost))
+            self.state.ghosts.append(Clyde(x=corners[1][0], start_x=corners[1][0], y=corners[1][1], start_y=corners[1][1], state="alive", score=self.config.point_per_ghost))
+            self.state.ghosts.append(Inky(x=corners[2][0], start_x=corners[2][0], y=corners[2][1], start_y=corners[2][1], state="alive", score=self.config.point_per_ghost))
+            self.state.ghosts.append(Pinky(x=corners[3][0], start_x=corners[3][0], y=corners[3][1], start_y=corners[3][1], state="alive", score=self.config.point_per_ghost))
 
             self.state.super_pacgums.append(SuperPacGum(x=corners[0][0], y=corners[0][1], eaten=False, score=self.config.point_per_sgum))
             self.state.super_pacgums.append(SuperPacGum(x=corners[1][0], y=corners[1][1], eaten=False, score=self.config.point_per_sgum))
             self.state.super_pacgums.append(SuperPacGum(x=corners[2][0], y=corners[2][1], eaten=False, score=self.config.point_per_sgum))
             self.state.super_pacgums.append(SuperPacGum(x=corners[3][0], y=corners[3][1], eaten=False, score=self.config.point_per_sgum))
         else:
-            print("Invalid ghost positions", file=sys.stderr)
+            print("Invalid corner positions", file=sys.stderr)
             sys.exit(1)
 
         excluded_positions = set(corners)
@@ -172,11 +172,39 @@ class Game(BaseModel):
         return True
 
 
-    def check_entity_collisions(self):
+    def move(self, dx, dy):
         pass
-    
+
+
+    def eat_ghost(self, ghost):
+        ghost.state = "vulnerable"
+        self.state.score += ghost.score
+        ghost.respawn()
+
+    def lose_life(self):
+        self.state.lives -= 1
+
     def check_ghost_collisions(self):
-        pass
+        pacman = self.state.pacman
+
+        if not pacman:
+            return
+        for ghost in self.state.ghosts:
+            if pacman.x == ghost.x and pacman.y == ghost.y:
+                if ghost.edible:
+                    self.eat_ghost(ghost)
+                else:
+                    self.lose_life()
+    
+    def check_pacgum_collisions(self):
+        pacman = self.state.pacman
+
+        if not pacman:
+            return
+        for pacgum in self.state.pacgums:
+            if pacman.x == pacgum.x and pacman.y == pacgum.y:
+                pacgum.eaten = True
+                self.state.score += pacgum.score
 
     def update(self):
         pass

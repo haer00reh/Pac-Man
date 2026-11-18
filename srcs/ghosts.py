@@ -1,7 +1,6 @@
 from objects import Ghost, Pacman
 
 class Clyde(Ghost):
-
     def chase(self, pacman: Pacman):
         pass
 
