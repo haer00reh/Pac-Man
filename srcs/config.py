@@ -172,10 +172,6 @@ class Game(BaseModel):
         return True
 
 
-    def move(self, dx, dy):
-        pass
-
-
     def eat_ghost(self, ghost):
         ghost.state = "vulnerable"
         self.state.score += ghost.score
@@ -196,7 +192,7 @@ class Game(BaseModel):
                 else:
                     self.lose_life()
     
-    def check_pacgum_collisions(self):
+    def check_gums_collisions(self):
         pacman = self.state.pacman
 
         if not pacman:
@@ -205,6 +201,10 @@ class Game(BaseModel):
             if pacman.x == pacgum.x and pacman.y == pacgum.y:
                 pacgum.eaten = True
                 self.state.score += pacgum.score
+        for super_pacgum in self.state.super_pacgums:
+            if pacman.x == super_pacgum.x and pacman.y == super_pacgum.y:
+                super_pacgum.eaten = True
+                self.state.score += super_pacgum.score
 
     def update(self):
         pass

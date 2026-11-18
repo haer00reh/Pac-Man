@@ -5,6 +5,7 @@ class Pacman(BaseModel):
     x: int
     y: int
     state: str
+    direction: tuple[int, int]
 
 class PacGum(BaseModel):
     x: int
