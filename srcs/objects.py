@@ -21,6 +21,7 @@ class Ghost(BaseModel):
     y: int
     start_x: int
     start_y: int
+    pacman: Pacman
     state: str
     edible: bool = False
     score: int = 0
@@ -29,6 +30,17 @@ class Ghost(BaseModel):
         self.x = self.start_x
         self.y = self.start_y
         self.state = "alive"
+
+    def get_ahead_position(self, distance: int):
+        directions = {
+            "north": (0, -4),
+            "east": (4, 0),
+            "south": (0, 4),
+            "west": (-4, 0)
+        }
+        
+        dx, dy = directions.get(self.pacman.direction)
+        return (self.pacman.x + dx * distance, self.pacman.y + dy * distance)
 
     def move(
         self,

@@ -27,7 +27,15 @@ class Config(BaseModel):
                 raise ValueError(f"Duplicate parameter: {key}")
             params[key] = value
         return params
+def get_inky_target(self):
+    projected = self.get_ahead_position(self.state.pacman, 2)
 
+    blinky = self.state.ghosts[0]
+
+    target_x = 2 * projected[0] - blinky.x
+    target_y = 2 * projected[1] - blinky.y
+
+    return target_x, target_y
     @staticmethod
     def check_values(value: Any, path: str = "config") -> None:
         if isinstance(value, (int, float)) and not isinstance(value, bool):
@@ -73,7 +81,15 @@ class GameState(BaseModel):
     current_score: int = 0
     ghosts: list[Ghost] = []
     pacgums: list[PacGum] = []
-    super_pacgums: list[SuperPacGum] = []
+    super_pacgums: list[SuperPacGum] = []def get_inky_target(self):
+    projected = self.get_ahead_position(self.state.pacman, 2)
+
+    blinky = self.state.ghosts[0]
+
+    target_x = 2 * projected[0] - blinky.x
+    target_y = 2 * projected[1] - blinky.y
+
+    return target_x, target_y
     maps: list[MazeGenerator] = []
 
 
@@ -125,10 +141,21 @@ class Game(BaseModel):
             self.state.pacman = Pacman(x=closest[0], y=closest[1], state="alive")
 
         if all(corner in self.valid_positions for corner in corners):
-            self.state.ghosts.append(Blinky(x=corners[0][0], start_x=corners[0][0], y=corners[0][1], start_y=corners[0][1], state="alive", score=self.config.point_per_ghost))
-            self.state.ghosts.append(Clyde(x=corners[1][0], start_x=corners[1][0], y=corners[1][1], start_y=corners[1][1], state="alive", score=self.config.point_per_ghost))
-            self.state.ghosts.append(Inky(x=corners[2][0], start_x=corners[2][0], y=corners[2][1], start_y=corners[2][1], state="alive", score=self.config.point_per_ghost))
-            self.state.ghosts.append(Pinky(x=corners[3][0], start_x=corners[3][0], y=corners[3][1], start_y=corners[3][1], state="alive", score=self.config.point_per_ghost))
+            self.state.ghosts.append(Blinky(x=corners[0][0], start_x=corners[0][0],
+             y=corners[0][1], start_y=corners[0][1], state="alive",
+              score=self.config.point_per_ghost, pacman=self.state.pacman))
+
+            self.state.ghosts.append(Clyde(x=corners[1][0], start_x=corners[1][0],
+             y=corners[1][1], start_y=corners[1][1], state="alive",
+              score=self.config.point_per_ghost, pacman=self.state.pacman))
+
+            self.state.ghosts.append(Inky(x=corners[2][0], start_x=corners[2][0],
+             y=corners[2][1], start_y=corners[2][1], state="alive",
+              score=self.config.point_per_ghost, pacman=self.state.pacman))
+              
+            self.state.ghosts.append(Pinky(x=corners[3][0], start_x=corners[3][0],
+             y=corners[3][1], start_y=corners[3][1], state="alive",
+              score=self.config.point_per_ghost, pacman=self.state.pacman))
 
             self.state.super_pacgums.append(SuperPacGum(x=corners[0][0], y=corners[0][1], eaten=False, score=self.config.point_per_sgum))
             self.state.super_pacgums.append(SuperPacGum(x=corners[1][0], y=corners[1][1], eaten=False, score=self.config.point_per_sgum))
