@@ -81,7 +81,7 @@ class GameState(BaseModel):
     current_score: int = 0
     ghosts: list[Ghost] = []
     pacgums: list[PacGum] = []
-    super_pacgums: list[SuperPacGum] = []def get_inky_target(self):
+    super_pacgums: list[SuperPacGum] = []
     projected = self.get_ahead_position(self.state.pacman, 2)
 
     blinky = self.state.ghosts[0]
@@ -152,7 +152,7 @@ class Game(BaseModel):
             self.state.ghosts.append(Inky(x=corners[2][0], start_x=corners[2][0],
              y=corners[2][1], start_y=corners[2][1], state="alive",
               score=self.config.point_per_ghost, pacman=self.state.pacman))
-              
+
             self.state.ghosts.append(Pinky(x=corners[3][0], start_x=corners[3][0],
              y=corners[3][1], start_y=corners[3][1], state="alive",
               score=self.config.point_per_ghost, pacman=self.state.pacman))
