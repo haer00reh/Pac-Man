@@ -18,7 +18,6 @@ def main() -> None:
     game.collect_valid_positions()
     game.init_positions()
 
-    test_game(game)
 
 
 if __name__ == "__main__":

@@ -5,7 +5,6 @@ from pydantic import BaseModel
 
 FULL_WALL = 15
 
-# (dx, dy, wall bit on current cell, wall bit on neighbour cell)
 DIRECTIONS = [
     (0, -1, 1, 4),   # North
     (1, 0, 2, 8),    # East
@@ -111,7 +110,7 @@ class Ghost(BaseModel):
     def chase(self, maze: list[list[int]], blinky: "Ghost | None" = None) -> None:
         target = self.snap_to_valid(self.get_target(blinky), maze)
         step = self.move((self.x, self.y), target, maze)
-        if step is not None:          # move() can return None
+        if step is not None:
             self.x, self.y = step
 
     def wander(self, maze: list[list[int]], rng: random.Random) -> None:
