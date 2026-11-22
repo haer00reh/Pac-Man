@@ -1,12 +1,15 @@
 import random
 from collections import deque
-from game import Directions
 from pydantic import BaseModel
-
-from game import Directions
+from enum import Enum
 
 FULL_WALL = 15
 
+class Directions(Enum):
+    NORTH = (0, -1, 1, 4)
+    EAST = (1, 0, 2, 8)
+    SOUTH = (0, 1, 4, 1)
+    WEST = (-1, 0, 8, 2)
 
 def open_neighbors(x: int, y: int, maze: list[list[int]]) -> list[tuple[int, int]]:
     """Tiles you can step to from (x, y) without crossing a wall."""
