@@ -10,14 +10,7 @@ def main() -> None:
         sys.exit(1)
 
     game = Game()
-    game.config.file_path = sys.argv[1]
-    game.config.extract()
-    random.seed(game.config.seed)
-
-    game.load_level(1)
-    game.collect_valid_positions()
-    game.init_positions()
-
+    game.setup(sys.argv[1])
 
 
 if __name__ == "__main__":

@@ -6,20 +6,19 @@ from config import GameState, Config
 from mazegenerator import MazeGenerator
 from objects import Ghost, PacGum, Pacman, SuperPacGum
 from ghosts import Blinky, Clyde, Inky, Pinky
-
+from enum import Enum
 
 FULL_WALL = 15
 PACMAN_STEP = 0.15
 GHOST_STEP = 0.20
 FRIGHTENED_TIME = 8.0
 
-DIRECTIONS: dict[str, tuple[int, int, int, int]] = {
-    "north": (0, -1, 1, 4),
-    "east": (1, 0, 2, 8),
-    "south": (0, 1, 4, 1),
-    "west": (-1, 0, 8, 2),
-}
 
+class Directions(Enum):
+    NORTH = (0, -1, 1, 4)
+    EAST = (1, 0, 2, 8)
+    SOUTH = (0, 1, 4, 1)
+    WEST = (-1, 0, 8, 2)
 
 class Game(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -30,12 +29,12 @@ class Game(BaseModel):
     valid_set: set[tuple[int, int]] = Field(default_factory=set)
     maze: list[list[int]] = Field(default_factory=list)
     rng: random.Random = Field(default_factory=random.Random)
-
+    
     level_index: int = 0
     status: str = "running"  #     running    or    game_over      ot         won
     time_left: float = 0.0
-    direction: str | None = None
-    next_direction: str | None = None
+    direction: Directions | None = None
+    next_direction: Directions | None = None
     pacman_spawn: tuple[int, int] = (0, 0)
     pacman_acc: float = 0.0
     ghost_acc: float = 0.0
@@ -142,15 +141,15 @@ class Game(BaseModel):
             )
 
 
-    def set_direction(self, direction: str) -> None:
+    def set_direction(self, direction: Directions) -> None:
         """Call this from your input handler."""
-        if direction in DIRECTIONS:
+        if isinstance(direction, Directions):
             self.next_direction = direction
 
-    def can_move(self, x: int, y: int, direction: str) -> bool:
-        if direction not in DIRECTIONS:
+    def can_move(self, x: int, y: int, direction: Directions) -> bool:
+        if not isinstance(direction, Directions):
             return False
-        dx, dy, wall, opposite_wall = DIRECTIONS[direction]
+        dx, dy, wall, opposite_wall = direction.value
         nx, ny = x + dx, y + dy
 
         if not (0 <= ny < len(self.maze) and 0 <= nx < len(self.maze[0])):
@@ -168,7 +167,7 @@ class Game(BaseModel):
         for direction in (self.next_direction, self.direction):
             if direction and self.can_move(pacman.x, pacman.y, direction):
                 self.direction = direction
-                dx, dy = DIRECTIONS[direction][:2]
+                dx, dy = direction.value[:2]
                 pacman.x += dx
                 pacman.y += dy
                 pacman.direction = (dx, dy)
