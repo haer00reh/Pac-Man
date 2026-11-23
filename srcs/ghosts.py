@@ -1,4 +1,4 @@
-from objects import Ghost
+from srcs.objects import Ghost
 
 
 class Blinky(Ghost):

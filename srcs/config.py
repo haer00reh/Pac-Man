@@ -4,7 +4,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from objects import Ghost, PacGum, Pacman, SuperPacGum
+from srcs.objects import Ghost, PacGum, Pacman, SuperPacGum
 
 
 

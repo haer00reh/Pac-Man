@@ -2,10 +2,10 @@ import random
 import sys
 
 from pydantic import BaseModel, ConfigDict, Field
-from config import GameState, Config
+from srcs.config import GameState, Config
 from mazegenerator import MazeGenerator
-from objects import Ghost, PacGum, Pacman, SuperPacGum
-from ghosts import Blinky, Clyde, Inky, Pinky
+from srcs.objects import Ghost, PacGum, Pacman, SuperPacGum
+from srcs.ghosts import Blinky, Clyde, Inky, Pinky
 from enum import Enum
 
 FULL_WALL = 15
@@ -19,6 +19,7 @@ class Directions(Enum):
     EAST = (1, 0, 2, 8)
     SOUTH = (0, 1, 4, 1)
     WEST = (-1, 0, 8, 2)
+    NONE = None
 
 class Game(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -29,15 +30,16 @@ class Game(BaseModel):
     valid_set: set[tuple[int, int]] = Field(default_factory=set)
     maze: list[list[int]] = Field(default_factory=list)
     rng: random.Random = Field(default_factory=random.Random)
-    
+
     level_index: int = 0
     status: str = "running"  #     running    or    game_over      ot         won
     time_left: float = 0.0
-    direction: Directions | None = None
-    next_direction: Directions | None = None
+    direction: Directions = Directions.NONE
+    next_direction: Directions = Directions.NONE
     pacman_spawn: tuple[int, int] = (0, 0)
     pacman_acc: float = 0.0
     ghost_acc: float = 0.0
+    size: tuple[int, int] = (0, 0)
 
     def setup(self, file_path: str) -> None:
         self.config.file_path = file_path
@@ -53,12 +55,12 @@ class Game(BaseModel):
             sys.exit(1)
         try:
             dat = levels[level_index]
-            size = (dat["width"], dat["height"])
+            self.size = (dat["width"], dat["height"])
         except (KeyError, TypeError):
             print(f"Invalid level definition: {level_index}", file=sys.stderr)
             sys.exit(1)
 
-        self.maze = MazeGenerator(seed=self.config.seed, size=size).maze
+        self.maze = MazeGenerator(seed=self.config.seed, size=self.size).maze
         if not self.maze:
             print(f"Level not found: {level_index}", file=sys.stderr)
             sys.exit(1)
@@ -96,8 +98,8 @@ class Game(BaseModel):
         self.state.pacgums = []
         self.state.super_pacgums = []
         self.state.frightened_timer = 0.0
-        self.direction = None
-        self.next_direction = None
+        self.direction = Directions.NONE
+        self.next_direction = Directions.NONE
         self.pacman_acc = 0.0
         self.ghost_acc = 0.0
 
@@ -149,6 +151,8 @@ class Game(BaseModel):
     def can_move(self, x: int, y: int, direction: Directions) -> bool:
         if not isinstance(direction, Directions):
             return False
+        if direction is Directions.NONE:
+            return False
         dx, dy, wall, opposite_wall = direction.value
         nx, ny = x + dx, y + dy
 
@@ -193,8 +197,8 @@ class Game(BaseModel):
             pacman.x, pacman.y = self.pacman_spawn
         if pacman is not None:
             pacman.direction = (0, 0)
-        self.direction = None
-        self.next_direction = None
+        self.direction = Directions.NONE
+        self.next_direction = Directions.NONE
         self.state.frightened_timer = 0.0
         for ghost in self.state.ghosts:
             ghost.respawn()

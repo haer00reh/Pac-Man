@@ -1,16 +1,13 @@
 import sys
-import random
-from typing import Any
-from game import Game
-
+from srcs.game import Game
+from srcs.gui import GUI
 
 def main() -> None:
     if len(sys.argv) != 2:
         print("Usage: python main.py <config.json>", file=sys.stderr)
         sys.exit(1)
+    display = GUI()
 
-    game = Game()
-    game.setup(sys.argv[1])
 
 
 if __name__ == "__main__":
