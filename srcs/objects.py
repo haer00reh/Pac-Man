@@ -31,6 +31,10 @@ def open_neighbors(x: int, y: int, maze: list[list[int]]) -> list[tuple[int, int
 class Pacman(BaseModel):
     x: int
     y: int
+    prev_x: int = 0
+    prev_y: int = 0
+    visual_y: float = 0.0
+    visual_x: float = 0.0
     state: str
     direction: tuple[int, int] = (0, 0)
 
@@ -49,6 +53,10 @@ class SuperPacGum(PacGum):
 class Ghost(BaseModel):
     x: int
     y: int
+    prev_x: int = 0
+    prev_y: int = 0
+    visual_x: float = 0.0
+    visual_y: float = 0.0
     start_x: int
     start_y: int
     pacman: Pacman
@@ -111,10 +119,14 @@ class Ghost(BaseModel):
         target = self.snap_to_valid(self.get_target(blinky), maze)
         step = self.move((self.x, self.y), target, maze)
         if step is not None:
+            self.prev_x = self.x
+            self.prev_y = self.y
             self.x, self.y = step
 
     def wander(self, maze: list[list[int]], rng: random.Random) -> None:
         """Used while the ghost is edible."""
         options = open_neighbors(self.x, self.y, maze)
         if options:
+            self.prev_x = self.x
+            self.prev_y = self.y
             self.x, self.y = rng.choice(options)

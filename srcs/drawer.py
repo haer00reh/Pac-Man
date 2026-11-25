@@ -195,13 +195,13 @@ class Drawer:
         ghosts: List[Tuple[Ghost, py.Surface]] = self.get_ghosts_image()
         for gh in ghosts:
             rect = gh[1].get_rect()
-            x = offset_x + gh[0].x * cell_size + cell_size // 2
-            y = offset_y + gh[0].y * cell_size + cell_size // 2
+            x = offset_x + gh[0].visual_x * cell_size + cell_size // 2
+            y = offset_y + gh[0].visual_y * cell_size + cell_size // 2
             rect.center = (x, y)
             surface.blit(gh[1], rect)
         
         # Draw the pacgums
-        pac_x, pac_y = ((self.game.state.pacman.x, self.game.state.pacman.y)
+        pac_x, pac_y = ((self.game.state.pacman.visual_x, self.game.state.pacman.visual_y)
                         if self.game.state.pacman
                         else (0, 0))
         cx = offset_x + pac_x * cell_size + cell_size // 2

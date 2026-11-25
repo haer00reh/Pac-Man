@@ -60,11 +60,15 @@ class Game(BaseModel):
             print(f"Invalid level definition: {level_index}", file=sys.stderr)
             sys.exit(1)
 
+        if self.size[0] >= 27 or self.size[1] >= 27:
+            print(f"Invalid width or height for lvl {level_index}, 27 max", file=sys.stderr)
+            sys.exit(1)
+
         self.maze = MazeGenerator(seed=self.config.seed, size=self.size).maze
         if not self.maze:
             print(f"Level not found: {level_index}", file=sys.stderr)
-            sys.exit(1)
 
+            sys.exit(1)
         self.level_index = level_index
         self.rng = random.Random(self.config.seed + level_index)
         self.time_left = float(self.config.time_limit)
@@ -168,6 +172,8 @@ class Game(BaseModel):
         pacman = self.state.pacman
         if pacman is None:
             return
+        pacman.prev_x = pacman.x
+        pacman.prev_y = pacman.y
         for direction in (self.next_direction, self.direction):
             if direction and self.can_move(pacman.x, pacman.y, direction):
                 self.direction = direction
@@ -177,6 +183,20 @@ class Game(BaseModel):
                 pacman.direction = (dx, dy)
                 return
 
+    def update_visuals(self) -> None:
+        t = self.pacman_acc / PACMAN_STEP
+
+        self.state.pacman.visual_x = self.state.pacman.prev_x + (self.state.pacman.x - self.state.pacman.prev_x) * t
+        self.state.pacman.visual_y = self.state.pacman.prev_y + (self.state.pacman.y - self.state.pacman.prev_y) * t
+
+
+    def update_ghost_visuals(self) -> None:
+        for ghost in self.state.ghosts:
+            if ghost.visual_x is None or ghost.visual_y is None:
+                continue
+            t = self.ghost_acc / GHOST_STEP
+            ghost.visual_x = ghost.prev_x + (ghost.x - ghost.prev_x) * t
+            ghost.visual_y = ghost.prev_y + (ghost.y - ghost.prev_y) * t
 
     def update_ghosts(self) -> None:
         blinky = next((g for g in self.state.ghosts if isinstance(g, Blinky)), None)
@@ -293,6 +313,8 @@ class Game(BaseModel):
             self.update_ghosts()
             self.check_ghost_collisions()
 
+        self.update_visuals()
+        self.update_ghost_visuals()
         if self.status != "running":
             return
         if self.check_game_over():
