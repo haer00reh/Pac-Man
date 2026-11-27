@@ -21,7 +21,8 @@ class Inky(Ghost):
 
 class Clyde(Ghost):
     def get_target(self, blinky: Ghost | None = None) -> tuple[int, int]:
-        distance = ((self.pacman.x - self.x) ** 2 + (self.pacman.y - self.y) ** 2) ** 0.5
+        distance = ((self.pacman.x - self.x) ** 2
+                    + (self.pacman.y - self.y) ** 2) ** 0.5
         if distance < 8:
             return self.start_x, self.start_y
         return self.pacman.x, self.pacman.y

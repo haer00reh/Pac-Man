@@ -1,5 +1,5 @@
 import pygame as py
-from srcs.game import Game, Directions
+from srcs.game import Game, Direction
 from typing import Tuple, List
 from srcs.objects import Ghost
 from srcs.ghosts import Blinky, Inky, Clyde, Pinky
@@ -17,17 +17,26 @@ FORTY_TWO_TEMPLATE = [
     [0, 0, 1, 0, 1, 1, 1],
 ]
 
+
 class Drawer:
-    def __init__(self, game: Game, pac_icon):
+    def __init__(self, game: Game):
         self.game = game
         self.maze = game.maze
         self.maze_width = game.size[0]
         self.maze_height = game.size[1]
-        self.pacman_icon = pac_icon
         self.blinky_img = py.image.load("assets/blinky.png")
         self.pinky_img = py.image.load("assets/pinky.png")
         self.inky_img = py.image.load("assets/inky.png")
         self.clyde_img = py.image.load("assets/clyde.png")
+        self.pacman_img = py.image.load('assets/pacman_icon.png')
+        self.pacman = self.get_pacman_image(self.pacman_img)
+
+    def update(self, game: Game, surface: py.Surface):
+        self.game = game
+        self.maze = game.maze
+        self.maze_width = game.size[0]
+        self.maze_height = game.size[1]
+        self.draw_maze(surface)
 
     def is_42_cell(self, x: int, y: int) -> bool:
         """Return True if cell (x, y) belongs to the centered '42' pattern."""
@@ -52,6 +61,7 @@ class Drawer:
             return FORTY_TWO_TEMPLATE[ty][tx] == 1 and grid[y][x] == 15
 
         return False
+
     def _draw_wall_rect(
         self,
         surface: py.Surface,
@@ -62,7 +72,10 @@ class Drawer:
         color: str,
         thickness: int,
     ) -> None:
-        """Draw a thick wall centered cleanly along the segment (x1, y1) -> (x2, y2)."""
+        """
+            Draw a thick wall
+            centered cleanly along the segment (x1, y1) -> (x2, y2).
+        """
         half = thickness // 2
         if y1 == y2:
             # Horizontal wall
@@ -157,21 +170,23 @@ class Drawer:
 
                 cell = grid[y][x]
                 if (cell & TOP) and not self.is_42_cell(x, y - 1):
-                    self._draw_wall_rect(surface, x1, y1, x2, y1, wall_color, thickness)
+                    self._draw_wall_rect(surface, x1, y1, x2, y1, wall_color,
+                                         thickness)
                 if (cell & RIGHT) and not self.is_42_cell(x + 1, y):
-                    self._draw_wall_rect(surface, x2, y1, x2, y2, wall_color, thickness)
+                    self._draw_wall_rect(surface, x2, y1, x2, y2, wall_color,
+                                         thickness)
                 if (cell & BOTTOM) and not self.is_42_cell(x, y + 1):
-                    self._draw_wall_rect(surface, x1, y2, x2, y2, wall_color, thickness)
+                    self._draw_wall_rect(surface, x1, y2, x2, y2, wall_color,
+                                         thickness)
                 if (cell & LEFT) and not self.is_42_cell(x - 1, y):
-                    self._draw_wall_rect(surface, x1, y1, x1, y2, wall_color, thickness)
+                    self._draw_wall_rect(surface, x1, y1, x1, y2, wall_color,
+                                         thickness)
 
-        # Pass 2: Draw '42' cells last so their right/bottom edges are never overwritten
         for x, y, x1, y1, x2, y2 in forty_two_cells:
             self.draw_42_cell(
                 surface,
                 x,
                 y,
-                
                 x1,
                 y1,
                 x2,
@@ -195,13 +210,16 @@ class Drawer:
         ghosts: List[Tuple[Ghost, py.Surface]] = self.get_ghosts_image()
         for gh in ghosts:
             rect = gh[1].get_rect()
-            x = offset_x + gh[0].visual_x * cell_size + cell_size // 2
-            y = offset_y + gh[0].visual_y * cell_size + cell_size // 2
-            rect.center = (x, y)
+            gh_x: float = (offset_x + gh[0].visual_x
+                           * cell_size + cell_size // 2)
+            gh_y: float = (offset_y + gh[0].visual_y
+                           * cell_size + cell_size // 2)
+            rect.center = (int(gh_x), int(gh_y))
             surface.blit(gh[1], rect)
-        
+
         # Draw the pacgums
-        pac_x, pac_y = ((self.game.state.pacman.visual_x, self.game.state.pacman.visual_y)
+        pac_x, pac_y = ((self.game.state.pacman.visual_x,
+                         self.game.state.pacman.visual_y)
                         if self.game.state.pacman
                         else (0, 0))
         cx = offset_x + pac_x * cell_size + cell_size // 2
@@ -209,18 +227,31 @@ class Drawer:
         icon, rect = self.update_direction()
         rect.center = (cx, cy)
         surface.blit(icon, rect)
-    
+
+    def get_pacman_image(self, img):
+        sx = 40
+        sy = 40
+        if 20 > self.game.size[0] > 15:
+            sx = 30
+        elif self.game.size[0] >= 20:
+            sx = 20
+        if 20 > self.game.size[1] > 15:
+            sy = 30
+        elif self.game.size[1] >= 20:
+            sy = 20
+        return py.transform.scale(img, (sx, sy))
+
     def get_ghosts_image(self):
         ghosts = self.game.state.ghosts
         res = []
         img = None
         sx = 40
         sy = 40
-        if 20 > self.game.size[0] >= 15:
+        if 20 > self.game.size[0] > 15:
             sx = 30
         elif self.game.size[0] >= 20:
             sx = 20
-        if 20 > self.game.size[1] >= 15:
+        if 20 > self.game.size[1] > 15:
             sy = 30
         elif self.game.size[1] >= 20:
             sy = 20
@@ -238,21 +269,18 @@ class Drawer:
             res.append((gh, img))
             img = None
         return res
-    
+
     def update_direction(self):
         angle = 0
-        if (self.game.next_direction is Directions.NORTH):
+        if (self.game.next_direction is Direction.NORTH):
             angle = 90
-        if (self.game.next_direction is Directions.SOUTH):
+        if (self.game.next_direction is Direction.SOUTH):
             angle = -90
-        if (self.game.next_direction is Directions.EAST):
+        if (self.game.next_direction is Direction.EAST):
             angle = 0
-        if (self.game.next_direction is Directions.WEST):
+        if (self.game.next_direction is Direction.WEST):
             angle = 180
-        rotated_img = py.transform.rotate(self.pacman_icon, angle=angle)
+        self.pacman = self.pacman = self.get_pacman_image(self.pacman_img)
+        rotated_img = py.transform.rotate(self.pacman, angle=angle)
         new_rect = rotated_img.get_rect()
         return rotated_img, new_rect
-        
-
-
-        

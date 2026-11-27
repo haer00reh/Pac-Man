@@ -9,17 +9,25 @@ from srcs.ghosts import Blinky, Clyde, Inky, Pinky
 from enum import Enum
 
 FULL_WALL = 15
-PACMAN_STEP = 0.15
-GHOST_STEP = 0.20
+PACMAN_STEP = 0.4
+GHOST_STEP = 1
 FRIGHTENED_TIME = 8.0
 
+DIRECTIONS: dict[str, tuple[int, int, int, int]] = {
+    "north": (0, -1, 1, 4),
+    "east": (1, 0, 2, 8),
+    "south": (0, 1, 4, 1),
+    "west": (-1, 0, 8, 2),
+}
 
-class Directions(Enum):
+
+class Direction(Enum):
     NORTH = (0, -1, 1, 4)
     EAST = (1, 0, 2, 8)
     SOUTH = (0, 1, 4, 1)
     WEST = (-1, 0, 8, 2)
     NONE = None
+
 
 class Game(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -32,21 +40,33 @@ class Game(BaseModel):
     rng: random.Random = Field(default_factory=random.Random)
 
     level_index: int = 0
-    status: str = "running"  #     running    or    game_over      ot         won
+    status: str = "running"  # running    or    game_over   ot   won
     time_left: float = 0.0
-    direction: Directions = Directions.NONE
-    next_direction: Directions = Directions.NONE
+    direction: Direction = Direction.NONE
+    next_direction: Direction = Direction.NONE
     pacman_spawn: tuple[int, int] = (0, 0)
     pacman_acc: float = 0.0
     ghost_acc: float = 0.0
     size: tuple[int, int] = (0, 0)
+    level_completed: bool = False
 
-    def setup(self, file_path: str) -> None:
+    @classmethod
+    def _getconfig(cls, file_path: str | None):
+        if file_path is None:
+            raise ValueError("Config file not found")
+        config = Config(file_path=file_path)
+        config.extract()
+        return config.highscore_file
+
+    def setup(self, file_path: str | None) -> None:
+        if file_path is None:
+            raise ValueError("Config file not found")
         self.config.file_path = file_path
         self.config.extract()
-        self.state = GameState(lives=self.config.lives)
-        self.status = "running"
+
+        random.seed(self.config.seed)
         self.load_level(0)
+        self.status = "running"
 
     def load_level(self, level_index: int) -> None:
         levels = self.config.data.get("level")
@@ -61,14 +81,15 @@ class Game(BaseModel):
             sys.exit(1)
 
         if self.size[0] >= 27 or self.size[1] >= 27:
-            print(f"Invalid width or height for lvl {level_index}, 27 max", file=sys.stderr)
+            print(f"Invalid width or height for lvl {level_index}, 27 max",
+                  file=sys.stderr)
             sys.exit(1)
 
         self.maze = MazeGenerator(seed=self.config.seed, size=self.size).maze
         if not self.maze:
             print(f"Level not found: {level_index}", file=sys.stderr)
-
             sys.exit(1)
+
         self.level_index = level_index
         self.rng = random.Random(self.config.seed + level_index)
         self.time_left = float(self.config.time_limit)
@@ -90,7 +111,8 @@ class Game(BaseModel):
         center = (width // 2, height // 2)
         return min(
             self.valid_positions,
-            key=lambda pos: (pos[0] - center[0]) ** 2 + (pos[1] - center[1]) ** 2,
+            key=lambda pos: ((pos[0] - center[0]) ** 2 + (pos[1] - center[1])
+                             ** 2),
         )
 
     def init_positions(self) -> None:
@@ -98,12 +120,9 @@ class Game(BaseModel):
             print("Maze has no valid positions", file=sys.stderr)
             sys.exit(1)
 
-        self.state.ghosts = []
-        self.state.pacgums = []
-        self.state.super_pacgums = []
-        self.state.frightened_timer = 0.0
-        self.direction = Directions.NONE
-        self.next_direction = Directions.NONE
+        self.state = GameState(lives=self.config.lives)
+        self.direction = Direction.NONE
+        self.next_direction = Direction.NONE
         self.pacman_acc = 0.0
         self.ghost_acc = 0.0
 
@@ -116,7 +135,6 @@ class Game(BaseModel):
             (0, height - 1),
             (width - 1, height - 1),
         ]
-
         if center in self.valid_set:
             spawn = center
         else:
@@ -139,23 +157,23 @@ class Game(BaseModel):
 
         excluded = set(corners)
         excluded.add(spawn)
-        available = [pos for pos in self.valid_positions if pos not in excluded]
+        available = [pos for pos in self.valid_positions
+                     if pos not in excluded]
         count = min(self.config.data.get("pacgum", 0), len(available))
         for x, y in self.rng.sample(available, count):
             self.state.pacgums.append(
                 PacGum(x=x, y=y, eaten=False, score=self.config.point_per_gum)
             )
 
-
-    def set_direction(self, direction: Directions) -> None:
+    def set_direction(self, direction: Direction) -> None:
         """Call this from your input handler."""
-        if isinstance(direction, Directions):
+        if direction in Direction:
             self.next_direction = direction
 
-    def can_move(self, x: int, y: int, direction: Directions) -> bool:
-        if not isinstance(direction, Directions):
+    def can_move(self, x: int, y: int, direction: Direction) -> bool:
+        if direction not in Direction:
             return False
-        if direction is Directions.NONE:
+        if direction.value is None:
             return False
         dx, dy, wall, opposite_wall = direction.value
         nx, ny = x + dx, y + dy
@@ -185,10 +203,12 @@ class Game(BaseModel):
 
     def update_visuals(self) -> None:
         t = self.pacman_acc / PACMAN_STEP
-
-        self.state.pacman.visual_x = self.state.pacman.prev_x + (self.state.pacman.x - self.state.pacman.prev_x) * t
-        self.state.pacman.visual_y = self.state.pacman.prev_y + (self.state.pacman.y - self.state.pacman.prev_y) * t
-
+        if self.state.pacman is None:
+            return
+        self.state.pacman.visual_x = (self.state.pacman.prev_x + (
+            self.state.pacman.x - self.state.pacman.prev_x) * t)
+        self.state.pacman.visual_y = (self.state.pacman.prev_y + (
+            self.state.pacman.y - self.state.pacman.prev_y) * t)
 
     def update_ghost_visuals(self) -> None:
         for ghost in self.state.ghosts:
@@ -199,13 +219,13 @@ class Game(BaseModel):
             ghost.visual_y = ghost.prev_y + (ghost.y - ghost.prev_y) * t
 
     def update_ghosts(self) -> None:
-        blinky = next((g for g in self.state.ghosts if isinstance(g, Blinky)), None)
+        blinky = next((g for g in self.state.ghosts if isinstance(g, Blinky)),
+                      None)
         for ghost in self.state.ghosts:
             if ghost.edible:
                 ghost.wander(self.maze, self.rng)
             else:
                 ghost.chase(self.maze, blinky)
-
 
     def eat_ghost(self, ghost: Ghost) -> None:
         self.state.score += ghost.score
@@ -217,8 +237,8 @@ class Game(BaseModel):
             pacman.x, pacman.y = self.pacman_spawn
         if pacman is not None:
             pacman.direction = (0, 0)
-        self.direction = Directions.NONE
-        self.next_direction = Directions.NONE
+        self.direction = Direction.NONE
+        self.next_direction = Direction.NONE
         self.state.frightened_timer = 0.0
         for ghost in self.state.ghosts:
             ghost.respawn()
@@ -259,13 +279,14 @@ class Game(BaseModel):
                 pacgum.eaten = True
                 self.state.score += pacgum.score
         for super_pacgum in self.state.super_pacgums:
-            if not super_pacgum.eaten and (super_pacgum.x, super_pacgum.y) == pos:
+            if (not super_pacgum.eaten
+                    and (super_pacgum.x, super_pacgum.y) == pos):
                 super_pacgum.eaten = True
                 self.state.score += super_pacgum.score
                 self.frighten_ghosts()
         self.state.pacgums = [g for g in self.state.pacgums if not g.eaten]
-        self.state.super_pacgums = [g for g in self.state.super_pacgums if not g.eaten]
-
+        self.state.super_pacgums = [g for g in self.state.super_pacgums
+                                    if not g.eaten]
 
     def update_frightened(self, delta_time: float) -> None:
         if self.state.frightened_timer <= 0:
@@ -291,6 +312,7 @@ class Game(BaseModel):
             self.status = "won"
         else:
             self.load_level(next_index)
+        self.level_completed = True
 
     def update(self, delta_time: float) -> None:
         """delta_time in seconds."""
@@ -306,12 +328,14 @@ class Game(BaseModel):
             self.update_pacman()
             self.check_gums_collisions()
             self.check_ghost_collisions()
+            print("loop1")
 
         self.ghost_acc += delta_time
         while self.ghost_acc >= GHOST_STEP and self.status == "running":
             self.ghost_acc -= GHOST_STEP
             self.update_ghosts()
             self.check_ghost_collisions()
+            print("loop2")
 
         self.update_visuals()
         self.update_ghost_visuals()

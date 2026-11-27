@@ -7,7 +7,6 @@ from pydantic import BaseModel, ConfigDict, Field
 from srcs.objects import Ghost, PacGum, Pacman, SuperPacGum
 
 
-
 class Config(BaseModel):
 
     file_path: str = ""
@@ -18,6 +17,7 @@ class Config(BaseModel):
     point_per_gum: int = 0
     point_per_sgum: int = 0
     point_per_ghost: int = 0
+    highscore_file: str = 'highscores.json'
 
     @staticmethod
     def reject_duplicate_params(
@@ -43,7 +43,8 @@ class Config(BaseModel):
                 Config.check_values(item, f"{path}[{index}]")
 
     def parse(self, content: str) -> dict[str, Any]:
-        data = json.loads(content, object_pairs_hook=self.reject_duplicate_params)
+        data = json.loads(content,
+                          object_pairs_hook=self.reject_duplicate_params)
         self.check_values(data)
         return data
 
@@ -80,3 +81,20 @@ class GameState(BaseModel):
     pacgums: list[PacGum] = Field(default_factory=list)
     super_pacgums: list[SuperPacGum] = Field(default_factory=list)
 
+
+class GameResults():
+    _instance: 'GameResults | None' = None
+
+    @classmethod
+    def _getinstance(cls):
+        return cls._instance
+
+    def __new__(cls, *key, **args):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
+    def __init__(self, score: int, level: int, file: str = 'highscores.json'):
+        self.score = score
+        self.level = level
+        self.file = file

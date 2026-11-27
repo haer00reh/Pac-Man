@@ -12,7 +12,8 @@ DIRECTIONS = [
 ]
 
 
-def open_neighbors(x: int, y: int, maze: list[list[int]]) -> list[tuple[int, int]]:
+def open_neighbors(x: int, y: int, maze: list[list[int]]
+                   ) -> list[tuple[int, int]]:
     """Tiles you can step to from (x, y) without crossing a wall."""
     result = []
 
@@ -47,7 +48,10 @@ class PacGum(BaseModel):
 
 
 class SuperPacGum(PacGum):
-    pass
+    x: int
+    y: int
+    score: int = 0
+    eaten: bool
 
 
 class Ghost(BaseModel):
@@ -82,7 +86,8 @@ class Ghost(BaseModel):
                       maze: list[list[int]]) -> tuple[int, int]:
         """Pinky/Inky targets can land in a wall or outside the maze."""
         tx, ty = target
-        if 0 <= ty < len(maze) and 0 <= tx < len(maze[0]) and maze[ty][tx] != FULL_WALL:
+        if (0 <= ty < len(maze) and 0 <= tx < len(maze[0])
+                and maze[ty][tx] != FULL_WALL):
             return target
         return min(
             ((x, y) for y, row in enumerate(maze)
@@ -115,7 +120,8 @@ class Ghost(BaseModel):
                 queue.append(neighbor)
         return None
 
-    def chase(self, maze: list[list[int]], blinky: "Ghost | None" = None) -> None:
+    def chase(self, maze: list[list[int]], blinky: "Ghost | None" = None
+              ) -> None:
         target = self.snap_to_valid(self.get_target(blinky), maze)
         step = self.move((self.x, self.y), target, maze)
         if step is not None:
