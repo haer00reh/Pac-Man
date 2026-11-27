@@ -5,5 +5,5 @@ all:
 # 	clear
 
 clean:
-	@rm -rf src/__pycache* src/*/__pycache*
+	@rm -rf srcs/__pycache* srcs/*/__pycache*
 

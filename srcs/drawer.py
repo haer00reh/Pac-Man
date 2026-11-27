@@ -29,6 +29,7 @@ class Drawer:
         self.inky_img = py.image.load("assets/inky.png")
         self.clyde_img = py.image.load("assets/clyde.png")
         self.pacman_img = py.image.load('assets/pacman_icon.png')
+        self.feared_img = py.image.load("assets/feared_ghost.png")
         self.pacman = self.get_pacman_image(self.pacman_img)
 
     def update(self, game: Game, surface: py.Surface):
@@ -266,6 +267,8 @@ class Drawer:
                 img = py.transform.scale(self.inky_img, (sx, sy))
             if isinstance(gh, Pinky):
                 img = py.transform.scale(self.pinky_img, (sx, sy))
+            if gh.edible:
+                img = py.transform.scale(self.feared_img, (sx, sy))
             res.append((gh, img))
             img = None
         return res

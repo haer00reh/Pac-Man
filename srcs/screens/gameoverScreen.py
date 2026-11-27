@@ -1,7 +1,11 @@
 from srcs.screens.screen import Screen, Screens, Font
 import pygame as py
 from srcs.config import GameResults
-from typing import Tuple
+from typing import Tuple, List, Dict
+import json
+from json import JSONDecodeError
+from pathlib import Path
+from srcs.error import Error
 
 
 class GameOverScreen(Screen):
@@ -16,80 +20,120 @@ class GameOverScreen(Screen):
         self.background: py.Surface = py.transform.scale(
             game_over_img, (self.width, self.height))
         self.results: GameResults = GameResults._getinstance()
+        box_width = 500
+        box_height = 60
+        self.text_box_rect: py.Rect = py.Rect(
+            (self.width // 2) - (box_width // 2),
+            (self.height // 2) - (box_height // 2) + 100,
+            box_width, box_height
+        )
+        self.box_color: py.Color = py.Color("#373A3DFF")
+        self.input_text: str = ''
         self.quit: bool = False
         py.display.set_caption(self.caption_text)
 
     def draw(self, screen: py.Surface) -> None:
         screen.blit(self.background, (0, 0))
-        screen.blit(*self.get_height_score())
-        screen.blit(*self.get_final_score())
-        screen.blit(*self.get_final_level())
-        screen.blit(*self.get_try_message())
-        screen.blit(*self.get_quit_message())
+        py.draw.rect(
+            screen, self.box_color, self.text_box_rect, border_radius=6)
+
+        text_surface: py.Surface = Font.CUSTOM(None, size=60).render(
+            self.input_text, True, 'white')
+
+        text_rect: py.Rect = text_surface.get_rect()
+        text_rect.center = self.text_box_rect.center
+        screen.blit(text_surface, text_rect)
+        screen.blit(*self.get_message())
+        screen.blit(*self.get_info())
 
     def update(self, dt: float, surface: py.Surface) -> None:
         pass
 
     def event_handler(self, events) -> None:
-        for event in events:
-            if event.type == py.KEYDOWN:
-                if event.key == py.K_SPACE:
-                    self.next_screen = Screens.GAMESCREEN
-                if event.key == py.K_ESCAPE:
-                    self.quit = True
+        for e in events:
+            if e.type == py.KEYDOWN:
+                if e.key == py.K_RETURN:
+                    if len(self.input_text) != 0:
+                        self.save_record()
+                        self.next_screen = Screens.LEADERBOARDSCREEN
+                if e.key == py.K_BACKSPACE:
+                    self.input_text = self.input_text[:-1]
+                elif len(self.input_text) >= 10:
+                    continue
+                else:
+                    self.input_text += (e.unicode
+                                        if self.valid_name(e.unicode)
+                                        else '')
 
-    def get_height_score(self) -> Tuple[py.Surface, py.Rect]:
-        high_score: int = 1400  # get high score from json file
+    def valid_name(self, s: str):
+        if s in ' ':
+            return True
+        if not s.isalnum():
+            return False
+        return True
 
-        text: py.Surface = Font.CUSTOM(size=40).render(
-            f"final high_score: {high_score}".upper(),
+    def get_info(self) -> Tuple[py.Surface, py.Rect]:
+        text: py.Surface = Font.CUSTOM(size=20).render(
+            (f"score: {self.results.score}    "
+             f"level: {self.results.level}").upper(),
             True,
             'white'
         )
-        text_rect: py.Rect = text.get_rect()
-        text_rect.center = (self.width // 2, (self.height // 2) + 100)
+        text_rect: py.Rect = text.get_rect(
+            center=(self.width // 2,
+                    (self.height) - 100
+                    ))
         return text, text_rect
 
-    def get_final_score(self) -> Tuple[py.Surface, py.Rect]:
-        score: int = self.results.score
+    def save_record(self) -> None:
+        file: Path = Path(self.results.file)
+        self.input_text = self.input_text.strip()
+        if not file.exists():
+            self.write(file)
+        else:
+            self.append(file)
 
-        text: py.Surface = Font.CUSTOM(size=40).render(
-            f"final score: {score}".upper(),
+    def write(self, f: Path) -> None:
+        try:
+            with open(f.__str__(), 'w', encoding='utf-8') as fd:
+                data = []
+                data.append({
+                    "name": self.input_text,
+                    "score": self.results.score,
+                    'level': self.results.level
+                })
+                json.dump(data[:10], fd, indent=4)
+        except Exception as e:
+            raise Error(e)
+
+    def append(self, f: Path) -> None:
+        try:
+            with open(f.__str__(), 'r', encoding='utf-8') as fd:
+                data: List[Dict[str, str | int]] = json.load(fd)
+            data.sort(key=lambda e: e['score'], reverse=True)
+            data = data[:9]
+            with open(f.__str__(), 'w', encoding='utf-8') as fd:
+                data.append({
+                    "name": self.input_text,
+                    "score": self.results.score,
+                    "level": self.results.level
+                })
+                data.sort(key=lambda e: e['score'], reverse=True)
+                json.dump(data, fd, indent=4)
+
+        except JSONDecodeError:
+            self.write(f)
+        except Exception as e:
+            raise Error(e)
+
+    def get_message(self) -> Tuple[py.Surface, py.Rect]:
+        text: py.Surface = Font.CUSTOM(size=20).render(
+            "enter your name and press enter to save score".upper(),
             True,
             'white'
         )
-        text_rect: py.Rect = text.get_rect()
-        text_rect.center = (self.width // 2, (self.height // 2) + 150)
-        return text, text_rect
-
-    def get_final_level(self) -> Tuple[py.Surface, py.Rect]:
-        level: int = self.results.level
-
-        text: py.Surface = Font.CUSTOM(size=40).render(
-            f"level: {level}".upper(),
-            True,
-            'white'
-        )
-        text_rect: py.Rect = text.get_rect()
-        text_rect.center = (self.width // 2, (self.height // 2) + 200)
-        return text, text_rect
-
-    def get_try_message(self) -> Tuple[py.Surface, py.Rect]:
-        text: py.Surface = Font.CUSTOM(size=30).render(
-            "press space to try again".upper(),
-            True,
-            'yellow'
-        )
-        text_rect: py.Rect = text.get_rect()
-        text_rect.center = (self.width // 2, (self.height) - 150)
-        return text, text_rect
-
-    def get_quit_message(self) -> Tuple[py.Surface, py.Rect]:
-        text: py.Surface = Font.CUSTOM(size=30).render(
-            "press esc to quit".upper(),
-            True,
-            'yellow'
-        )
-        text_rect: py.Rect = text.get_rect()
-        text_rect.center = (self.width // 2, (self.height) - 100)
+        text_rect: py.Rect = text.get_rect(
+            center=(self.width // 2,
+                    (self.height // 2) + 150
+                    ))
         return text, text_rect

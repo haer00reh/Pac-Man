@@ -38,9 +38,9 @@ class WonScreen(Screen):
         py.draw.rect(
             screen, self.box_color, self.text_box_rect, border_radius=6)
 
-        text_surface = Font.CUSTOM(None, size=60).render(
+        text_surface: py.Surface = Font.CUSTOM(None, size=60).render(
             self.input_text, True, 'white')
-        text_rect = text_surface.get_rect()
+        text_rect: py.Rect = text_surface.get_rect()
         text_rect.center = self.text_box_rect.center
         screen.blit(text_surface, text_rect)
         screen.blit(*self.get_message())
